@@ -9,7 +9,7 @@ test(valid_keywords, [ true(
     )]) :- zanzibar_tokenizer:tokenize("kw1 kw2", Out).
 
 test(valid_floats, [ true(
-    Out=tokens([token(float, [1234, '.', 56]), token(float, ['0', '.', 123]), token(float, [987, '.', '0'])])
+    Out=tokens([token(float, 1234.56), token(float, 0.123), token(float, 987.0)])
     )]) :- zanzibar_tokenizer:tokenize("1234.56 .123 987.", Out).
 
 test(valid_int, [ true(
@@ -28,6 +28,7 @@ test(valid_tokens, [ true(
         token(symbol, '\\'),
         token(symbol, '\"'),
         token(symbol, '\''),
+        token(qs, "\""),
         token(symbol, '=='),
         token(symbol, '!='),
         token(symbol, '...'),
@@ -37,7 +38,7 @@ test(valid_tokens, [ true(
         token(array_e, ']'),
         token(qs, "single quoted"),
         token(scope_e, '}')])
-    )]) :- zanzibar_tokenizer:tokenize("name = \"value\" relation { +- \\\\ \\\" \\' == != ... . nested [] 'single quoted' }", Out).
+    )]) :- zanzibar_tokenizer:tokenize("name = \"value\" relation { +- \\\\ \\\" \\' '\"' == != ... . nested [] 'single quoted' }", Out).
 
 test(handles_unterminated_double_quoted, [ true(
     Out=tokens([

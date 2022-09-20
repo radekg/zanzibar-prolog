@@ -1,5 +1,5 @@
 .PHONY: test
-test: test-tuple test-utils
+test: test-tokenizer test-tuple test-utils
 
 .PHONY: test-tokenizer
 test-tokenizer:
