@@ -3,7 +3,7 @@
 
 % Enable double-quoted strings for ease of use.
 :- set_prolog_flag(double_quotes, chars).
-:- use_module(library(dcg/basics)).
+:- use_module(zanzibar_tokenizer).
 
 % Per the Zanzibar whitepaper:
 % -------------------------------------------|
@@ -13,55 +13,29 @@
 % ⟨userset⟩ ::= ⟨object⟩‘#’⟨relation⟩
 % -------------------------------------------|
 
-at             --> "@".
-colon          --> ":".
-hash           --> "#".
-dotdotdot(Out) --> "...", { Out = "..." }.
+tuple(List, t(Object, Relation, User)) :-
+    object(List, Object, R1),
+    relation(R1, Relation, R2),
+    user(R2, User, _), !.
 
-alphanum([H|T])  --> alphanum_char(H), !, alphanum(T).
-alphanum([])     --> [].
-alphanum_char(L) --> [L], { char_type(L, alnum) }.
+tuple(List, E) :- object(List, _, E), E = error(_, _), !.
 
-object_or_subject([H|T])  --> object_or_subject_char(H), !, object_or_subject(T).
-object_or_subject([])     --> [].
-object_or_subject_char(L) --> [L],
-    (
-        { char_type(L, alnum) }, !
-        | { char_code(L, 45) }, ! % for -
-    ).
+object(error(E1, E2), error(E1, E2), []).
+object([token(kw, Ns), token(symbol, ':'), token(kw, Obj) | T], o(Ns, Obj), T).
+object(Tokens, error(expected, object), Tokens).
 
-tuple(t(O, R, U)) -->
-    object(O),
-    hash,
-    relation(R),
-    (
-        at, user(U), !
-        | [], { U = u(none) } % for the object#relation top level tuple
-    ).
+relation(error(E1, E2), error(E1, E2), []).
+relation([token(symbol, '#'), token(kw, Relation)| T], r(Relation), T).
+relation(Tokens, error(expected, relation), Tokens).
 
-object(o(Ns, Name)) -->
-    alphanum(Ns),
-    colon,
-    object_or_subject(Name).
+user(error(E1, E2), error(E1, E2), []).
+user([token(symbol, '@'), token(kw, Ns), token(symbol, ':'), token(kw, Obj), token(symbol, '#'), token(kw, Rel) | T], u(set(o(Ns, Obj), r(Rel))), T).
+user([token(symbol, '@'), token(kw, Ns), token(symbol, ':'), token(kw, Obj), token(symbol, '#'), token(symbol, '...') | T], u(set(o(Ns, Obj), r("..."))), T).
+user([token(symbol, '@'), token(kw, Id) | []], u(id(Id)), []).
+user([token(symbol, '@'), token(number, Id) | []], u(id(Id)), []).
+user([], u(none), []).
+user(Tokens, error(expected, user_or_userset, received(Tokens)), Tokens).
 
-relation_dotdotdot(r(Out)) --> dotdotdot(Out).
-relation(r(Out)) --> alphanum(Out).
-
-user(u(Out)) -->
-    (
-        userset(Out), !
-        | user_id(Out), !
-    ).
-
-userset(set(Object, Relation)) -->
-    object(Object),
-    hash,
-    (
-        relation_dotdotdot(Relation), !
-        | relation(Relation) 
-    ).
-
-user_id(id(Id)) -->
-    object_or_subject(Id).
-
-parse_tuple(In, Out) :- phrase(tuple(Out), In).
+parse_tuple(In, Out) :-
+    zanzibar_tokenizer:tokenize(In, tokens(Tokens)),
+    tuple(Tokens, Out).
