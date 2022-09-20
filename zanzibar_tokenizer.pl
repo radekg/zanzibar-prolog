@@ -71,12 +71,25 @@ tokens([]) --> [].
 %   phrase(float(X), "123.4") also gives false.
 % Whatever, let's do this ourselves.
 
+to_number(['0', '.', X], Out) :-
+    format(string(S), "0.~d", [X]),
+    number_string(Out, S).
+to_number([X, '.', '0'], Out) :-
+    format(string(S), "~d.0", [X]),
+    number_string(Out, S).
+to_number([X, '.', Y], Out) :-
+    format(string(S), "~d.~d", [X, Y]),
+    number_string(Out, S).
+
 token(token(float, Out)) --> number(N1), ['.'], number(N2), !,
-    { lists:flatten([N1, ['.'], N2], Out) }.
+    { lists:flatten([N1, ['.'], N2], L) },
+    { to_number(L, Out) }.
 token(token(float, Out)) --> ['.'], number(N1), !,
-    { lists:flatten([['0','.'], N1], Out) }.
+    { lists:flatten([['0','.'], N1], L) },
+    { to_number(L, Out) }.
 token(token(float, Out)) --> number(N1), ['.'], !,
-    { lists:flatten([N1, ['.','0']], Out) }.
+    { lists:flatten([N1, ['.','0']], L) },
+    { to_number(L, Out) }.
 token(token(number, N)) --> number(N).
 
 % -------------------------------------------|
@@ -85,10 +98,16 @@ token(token(number, N)) --> number(N).
 % After numbers because we have the special treating of .\d+ as a float.
 
 token(token(symbol, '...')) --> ['.','.','.'], !.
+token(token(symbol, '..')) --> ['.','.'], !.
 token(token(symbol, '<=')) --> ['<','='], !.
 token(token(symbol, '>=')) --> ['>','='], !.
 token(token(symbol, '==')) --> ['=','='], !.
 token(token(symbol, '!=')) --> ['!','='], !.
+
+% Handle escape sequences, even invalid ones.
+% Any single character prefixed with \ becomes a symbol.
+% This handles dangling double and single quotes.
+token(token(symbol, C)) --> ['\\', C], !.
 
 token(token(scope_s, '{')) --> ['{'], !.
 token(token(scope_e, '}')) --> ['}'], !.
@@ -123,10 +142,8 @@ token(token(assign, '=')) --> ['='], !.
 % -------------------------------------------|
 % Quoted strings: first, try reading as a quoted string.
 % On backtracking, if we have a quote, it's an unterminated quoted string.
-% BUT, let's accept any escaped dangling quote.
 
 token(token(qs, Kw)) --> {Kw = [_|_]}, quoted(Kw), !.
-token(token(symbol, C)) --> ['\\', C], !.
 token(error(unterminated, '\"', R)) --> ['\"'], remainder(R), !.
 token(error(unterminated, '\'', R)) --> ['\''], remainder(R), !.
 
