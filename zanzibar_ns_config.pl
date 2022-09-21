@@ -32,6 +32,7 @@ kv([token(kw, K), token(assign,'='), token(float, V) | T], T, kv(K, V)).
 kv([token(kw, K), token(assign,'='), token(number, V) | T], T, kv(K, V)).
 kv([token(kw, K), token(assign,'='), token(kw, "true") | T], T, kv(K, true)).
 kv([token(kw, K), token(assign,'='), token(kw, "false") | T], T, kv(K, false)).
+kv([token(kw, K), token(assign,'='), token(symbol, '$'), token(kw, V) | T], T, kv(K, var(V))).
 
 child_body([], [], error(unterminated_child, consumed(Acc)), Acc).
 child_body([H|T], Rest, Out, Acc) :- scope_end([H|T], child, Rest, Out, Acc).
@@ -122,7 +123,7 @@ relation {
                     relation = \"parent\"
                 }
                 computed_userset {
-                    object = 0
+                    object = $tuple_userset_object
                     relation = \"viewer\"
                 }
             } }
