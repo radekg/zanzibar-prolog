@@ -51,6 +51,7 @@ next_quoted_char(H)         --> [H], !.
 % -------------------------------------------|
 
 keyword([H|T]) --> [H], { char_type(H, alnum) }, !, keyword(T).
+keyword([H|T]) --> [H], { char_code(H, 95) }, !, keyword(T).
 keyword([])    --> [].
 
 tokens([H|T]) --> spaces, token(H), !,
