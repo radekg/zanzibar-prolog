@@ -3,31 +3,31 @@
 :- use_module(library(dcg/basics)).
 :- use_module(zanzibar_tokenizer).
 
-child([token(kw, "child"), token(scope_s, '{') | T], Rest, Out, Acc) :-
+child([token(kw, child), token(scope_s, '{') | T], Rest, Out, Acc) :-
     child_body(T, Rest, Out, Acc).
 
-computed_userset([token(kw, "computed_userset"), token(scope_s, '{') | T], Rest, Out, Acc) :-
+computed_userset([token(kw, computed_userset), token(scope_s, '{') | T], Rest, Out, Acc) :-
     computed_userset_body(T, Rest, Out, Acc).
 
 config(tokens(Ts), Out) :- config_body(Ts, Out, []).
 
-expression([token(kw, "union"), token(scope_s, '{') | T], Rest, union(Out), Acc) :-
+expression([token(kw, union), token(scope_s, '{') | T], Rest, union(Out), Acc) :-
     expression_body(T, Rest, Out, Acc).
-expression([token(kw, "intersect"), token(scope_s, '{') | T], Rest, intersect(Out), Acc) :-
+expression([token(kw, intersect), token(scope_s, '{') | T], Rest, intersect(Out), Acc) :-
     expression_body(T, Rest, Out, Acc).
-expression([token(kw, "exclude"), token(scope_s, '{') | T], Rest, exclude(Out), Acc) :-
+expression([token(kw, exclude), token(scope_s, '{') | T], Rest, exclude(Out), Acc) :-
     expression_body(T, Rest, Out, Acc).
 expression([token(kw, Unknown), token(scope_s, '{') | _], [], error(unsupported_expression, Unknown), []).
 
-relation([token(kw, "relation"), token(scope_s, '{') | T], Rest, Out, Acc) :-
+relation([token(kw, relation), token(scope_s, '{') | T], Rest, Out, Acc) :-
     relation_body(T, Rest, Out, Acc).
 
-rewrite([token(kw, "rewrite"), token(scope_s, '{') | T], Rest, Out, Acc) :-
+rewrite([token(kw, rewrite), token(scope_s, '{') | T], Rest, Out, Acc) :-
     rewrite_body(T, Rest, Out, Acc).
 
-tuple_to_userset([token(kw, "tuple_to_userset"), token(scope_s, '{') | T], Rest, Out, Acc) :-
+tuple_to_userset([token(kw, tuple_to_userset), token(scope_s, '{') | T], Rest, Out, Acc) :-
     tuple_to_userset_body(T, Rest, Out, Acc).
-tupleset([token(kw, "tupleset"), token(scope_s, '{') | T], Rest, Out, Acc) :-
+tupleset([token(kw, tupleset), token(scope_s, '{') | T], Rest, Out, Acc) :-
     tupleset_body(T, Rest, Out, Acc).
 
 % -------------------------------------------|
@@ -36,8 +36,8 @@ tupleset([token(kw, "tupleset"), token(scope_s, '{') | T], Rest, Out, Acc) :-
 kv([token(kw, K), token(assign,'='), token(qs, V) | T], T, kv(K, V)).
 kv([token(kw, K), token(assign,'='), token(float, V) | T], T, kv(K, V)).
 kv([token(kw, K), token(assign,'='), token(number, V) | T], T, kv(K, V)).
-kv([token(kw, K), token(assign,'='), token(kw, "true") | T], T, kv(K, true)).
-kv([token(kw, K), token(assign,'='), token(kw, "false") | T], T, kv(K, false)).
+kv([token(kw, K), token(assign,'='), token(kw, true) | T], T, kv(K, true)).
+kv([token(kw, K), token(assign,'='), token(kw, false) | T], T, kv(K, false)).
 kv([token(kw, K), token(assign,'='), token(symbol, '$'), token(kw, V) | T], T, kv(K, var(V))).
 
 % -------------------------------------------|

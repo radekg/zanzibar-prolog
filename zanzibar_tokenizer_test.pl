@@ -5,7 +5,7 @@
 :- use_module(zanzibar_tokenizer).
 
 test(valid_keywords, [ true(
-    Out=tokens([token(kw, "kw1"), token(kw, "kw2")])
+    Out=tokens([token(kw, kw1), token(kw, kw2)])
     )]) :- zanzibar_tokenizer:tokenize("kw1 kw2", Out).
 
 test(valid_floats, [ true(
@@ -18,10 +18,10 @@ test(valid_int, [ true(
 
 test(valid_tokens, [ true(
     Out=tokens([
-        token(kw, "name"),
+        token(kw, name),
         token(assign, '='),
         token(qs, "value"),
-        token(kw, "relation"),
+        token(kw, relation),
         token(scope_s, '{'),
         token(symbol, '+'),
         token(symbol, '-'),
@@ -33,7 +33,7 @@ test(valid_tokens, [ true(
         token(symbol, '!='),
         token(symbol, '...'),
         token(symbol, '.'),
-        token(kw, "nested"),
+        token(kw, nested),
         token(array_s, '['),
         token(array_e, ']'),
         token(qs, "single quoted"),
@@ -42,10 +42,10 @@ test(valid_tokens, [ true(
 
 test(handles_unterminated_double_quoted, [ true(
     Out=tokens([
-        token(kw, "name"),
+        token(kw, name),
         token(assign, '='),
         token(qs, "value"),
-        token(kw, "relation"),
+        token(kw, relation),
         token(scope_s, '{'),
         error(unterminated, '\"', "unterminated follows")
         | _])
@@ -53,10 +53,10 @@ test(handles_unterminated_double_quoted, [ true(
 
 test(handles_unterminated_single_quoted, [ true(
     Out=tokens([
-        token(kw, "name"),
+        token(kw, name),
         token(assign, '='),
         token(qs, "value"),
-        token(kw, "relation"),
+        token(kw, relation),
         token(scope_s, '{'),
         error(unterminated, '\'', "unterminated follows")
         | _])

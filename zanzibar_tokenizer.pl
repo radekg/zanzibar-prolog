@@ -152,7 +152,7 @@ token(error(unterminated, '\'', R)) --> ['\''], remainder(R), !.
 % Read keywords:
 % -------------------------------------------|
 
-token(token(kw, Kw)) --> {Kw = [_|_]}, keyword(Kw), !.
+token(token(kw, Atom)) --> keyword(Kw), {atom_string(Atom, Kw)}, {Kw = [_|_]}, !.
 
 % -------------------------------------------|
 % Catch-all unknown input:
