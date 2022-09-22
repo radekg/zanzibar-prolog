@@ -1,10 +1,20 @@
 :- module(zanzibar_utils,
-    [is_error/1]).
+    [error_or_wrap/3, is_error/1]).
+
+error_or_wrap(Input, _, Input) :-
+    functor(Input, error, _),
+    !.
+
+error_or_wrap(Input, Wrap, Out) :-
+    atom(Wrap),
+    Out =.. [Wrap, Input],
+    !.
 
 is_error(Term) :-
     compound(Term),
     \+ atom(Term),
-    functor(Term, error, _), !.
+    functor(Term, error, _),
+    !.
 
 is_error(Term) :-
     compound(Term),
@@ -20,9 +30,11 @@ is_error_compound(Term, I, N) :-
     I =< N,
     arg(I, Term, Value),
     compound(Value),
-    is_error(Value), !.
+    is_error(Value),
+    !.
 
 is_error_compound(Term, I, N) :-
     I < N,
     J is I + 1,
-    is_error_compound(Term, J, N), !.
+    is_error_compound(Term, J, N),
+    !.
