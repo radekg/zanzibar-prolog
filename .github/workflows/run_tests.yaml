@@ -16,7 +16,7 @@ jobs:
     container:
       image: swipl:8.5.17
       options: -v ${{ github.workspace }}:/source -w /source
-      steps:
-        - name: Run tests
-          run: |
-            swipl -g run_tests -t halt zanzibar_tokenizer_test.pl
+    steps:
+      - name: Run tests
+        run: |
+          swipl -g run_tests -t halt zanzibar_tokenizer_test.pl
