@@ -1,0 +1,23 @@
+name: Run tests
+
+on:
+  pull_request:
+
+jobs:  
+  get_source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+  test:
+    needs: [ get_source ]
+    container:
+      image: swipl:8.5.17
+      options: -v ${{ github.workspace }}:/source -w /source
+      steps:
+        - name: Run tests
+          run: |
+            swipl -g run_tests -t halt zanzibar_tokenizer_test.pl
+
