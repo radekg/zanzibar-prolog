@@ -13,6 +13,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
   test:
     needs: [ sources ]
+    runs-on: ubuntu-latest
     container:
       image: swipl:8.5.17
       options: -v ${{ github.workspace }}:/source -w /source
