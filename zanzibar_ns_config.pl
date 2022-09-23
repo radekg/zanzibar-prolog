@@ -2,33 +2,31 @@
 :- set_prolog_flag(double_quotes, chars).
 :- use_module(library(dcg/basics)).
 :- use_module(zanzibar_tokenizer).
+:- use_module(zanzibar_utils).
 
-child([token(kw, child), token(scope_s, '{') | T], Rest, Out, Acc) :-
-    child_body(T, Rest, Out, Acc).
+child([token(kw, child), token(scope_s, '{'), token(symbol, '_'), token(scope_e, '}') | T], T, child(this), _).
+child([H|T], Rest, Out, Acc) :-
+    block([child], [H|T], child_body, Rest, Out, Acc).
 
-computed_userset([token(kw, computed_userset), token(scope_s, '{') | T], Rest, Out, Acc) :-
-    computed_userset_body(T, Rest, Out, Acc).
+computed_userset([H|T], Rest, Out, Acc) :-
+    block([computed_userset], [H|T], computed_userset_body, Rest, Out, Acc).
 
 config(tokens(Ts), Out) :- config_body(Ts, Out, []).
 
-expression([token(kw, union), token(scope_s, '{') | T], Rest, union(Out), Acc) :-
-    expression_body(T, Rest, Out, Acc).
-expression([token(kw, intersect), token(scope_s, '{') | T], Rest, intersect(Out), Acc) :-
-    expression_body(T, Rest, Out, Acc).
-expression([token(kw, exclude), token(scope_s, '{') | T], Rest, exclude(Out), Acc) :-
-    expression_body(T, Rest, Out, Acc).
-expression([token(kw, Unknown), token(scope_s, '{') | _], [], error(unsupported_expression, Unknown), []).
+expression([H|T], Rest, Out, Acc) :-
+    block([union, intersect, exclude], [H|T], expression_body, Rest, Out, Acc).
 
-relation([token(kw, relation), token(scope_s, '{') | T], Rest, Out, Acc) :-
-    relation_body(T, Rest, Out, Acc).
+relation([H|T], Rest, Out, Acc) :-
+    block([relation], [H|T], relation_body, Rest, Out, Acc).
 
-rewrite([token(kw, rewrite), token(scope_s, '{') | T], Rest, Out, Acc) :-
-    rewrite_body(T, Rest, Out, Acc).
+rewrite([H|T], Rest, Out, Acc) :-
+    block([rewrite], [H|T], rewrite_body, Rest, Out, Acc).
 
-tuple_to_userset([token(kw, tuple_to_userset), token(scope_s, '{') | T], Rest, Out, Acc) :-
-    tuple_to_userset_body(T, Rest, Out, Acc).
-tupleset([token(kw, tupleset), token(scope_s, '{') | T], Rest, Out, Acc) :-
-    tupleset_body(T, Rest, Out, Acc).
+tuple_to_userset([H|T], Rest, Out, Acc) :-
+    block([tuple_to_userset], [H|T], tuple_to_userset_body, Rest, Out, Acc).
+
+tupleset([H|T], Rest, Out, Acc) :-
+    block([tupleset], [H|T], tupleset_body, Rest, Out, Acc).
 
 % -------------------------------------------|
 % Key/value handling:
@@ -45,25 +43,25 @@ kv([token(kw, K), token(assign,'='), token(symbol, '$'), token(kw, V) | T], T, k
 % -------------------------------------------|
 child_body([], [], error(unterminated_child, consumed(Acc)), Acc).
 child_body([H|T], Rest, Out, Acc) :-
-    scope_end([H|T], child, Rest, Out, Acc),
+    scope_end([H|T], Rest, Out, Acc),
     !.
 
-child_body([H|T], Rest, Out, Acc) :-
-    computed_userset([H|T], T2, Item, []),
+% Matching by [H|T] instead of an explicit token results in a wrong case being
+% picked up with a very counter-intuitive error message.
+child_body([token(kw, computed_userset)|T], Rest, Out, Acc) :-
+    computed_userset([token(kw, computed_userset)|T], T2, Item, []),
     !, child_body(T2, Rest, Out, [Item|Acc]).
 
-child_body([H|T], Rest, Out, Acc) :-
-    tuple_to_userset([H|T], T2, Item, []),
-    ! ,child_body(T2, Rest, Out, [Item|Acc]).
-
-child_body([token(symbol, '_'), token(scope_e, '}') | T], T, child(this), _).
+child_body([token(kw, tuple_to_userset)|T], Rest, Out, Acc) :-
+    tuple_to_userset([token(kw, tuple_to_userset)|T], T2, Item, []),
+    !, child_body(T2, Rest, Out, [Item|Acc]).
 
 % -------------------------------------------|
 % Computed userset body:
 % -------------------------------------------|
 computed_userset_body([], [], error(unterminated_computed_userset, consumed(Acc)), Acc).
 computed_userset_body([H|T], Rest, Out, Acc) :-
-    scope_end([H|T], computed_userset, Rest, Out, Acc),
+    scope_end([H|T], Rest, Out, Acc),
     !.
 computed_userset_body([H|T], Rest, Out, Acc) :-
     kv([H|T], T2, Item),
@@ -86,7 +84,7 @@ config_body([], Acc, Acc).
 % -------------------------------------------|
 relation_body([], [], error(unterminated_relation, consumed(Acc)), Acc).
 relation_body([H|T], Rest, Out, Acc) :-
-    scope_end([H|T], relation, Rest, Out, Acc),
+    scope_end([H|T], Rest, Out, Acc),
     !.
 
 relation_body([H|T], Rest, Out, Acc) :-
@@ -102,7 +100,7 @@ relation_body([H|T], Rest, Out, Acc) :-
 % -------------------------------------------|
 rewrite_body([], [], error(unterminated_rewrite, consumed(Acc)), Acc).
 rewrite_body([H|T], Rest, Out, Acc) :-
-    scope_end([H|T], rewrite, Rest, Out, Acc),
+    scope_end([H|T], Rest, Out, Acc),
     !.
 
 rewrite_body([H|T], Rest, Out, Acc) :-
@@ -127,27 +125,52 @@ expression_body([H|T], Rest, Out, Acc) :-
 % -------------------------------------------|
 tuple_to_userset_body([], [], error(unterminated_tuple_to_userset, consumed(Acc)), Acc).
 tuple_to_userset_body([H|T], Rest, Out, Acc) :-
-    scope_end([H|T], tupleset_to_userset, Rest, Out, Acc),
+    scope_end([H|T], Rest, Out, Acc),
     !.
 
-tuple_to_userset_body([H|T], Rest, Out, Acc) :-
-    computed_userset([H|T], T2, Item, []),
+% Variations require a helper to match properly.
+% Matching by [H|T] instead of an explicit token results in a wrong case being
+% picked up with a very counter-intuitive error message.
+tuple_to_userset_body([token(kw, computed_userset)|T], Rest, Out, Acc) :-
+    computed_userset([token(kw, computed_userset)|T], T2, Item, []),
     !, tuple_to_userset_body(T2, Rest, Out, [Item|Acc]).
 
-tuple_to_userset_body([H|T], Rest, Out, Acc) :-
-    tupleset([H|T], T2, Item, []), 
+tuple_to_userset_body([token(kw, tupleset)|T], Rest, Out, Acc) :-
+    tupleset([token(kw, tupleset)|T], T2, Item, []), 
     !, tuple_to_userset_body(T2, Rest, Out, [Item|Acc]).
 
 % -------------------------------------------|
 % Tupleset body:
 % -------------------------------------------|
 tupleset_body([], [], error(unterminated_tupleset, consumed(Acc)), Acc).
-tupleset_body([H|T], Rest, Out, Acc) :- scope_end([H|T], tupleset, Rest, Out, Acc).
-tupleset_body([H|T], Rest, Out, Acc) :- kv([H|T], T2, Item), !, tupleset_body(T2, Rest, Out, [Item|Acc]).
+tupleset_body([H|T], Rest, Out, Acc) :-
+    scope_end([H|T], Rest, Out, Acc),
+    !.
+tupleset_body([H|T], Rest, Out, Acc) :-
+    kv([H|T], T2, Item),
+    !, tupleset_body(T2, Rest, Out, [Item|Acc]).
 
 % -------------------------------------------|
 % General:
 % -------------------------------------------|
+block(Search, [token(kw, Kw), token(scope_s, '{') | T], Body, Rest, Out, Acc) :-
+    memberchk(Kw, Search),
+    BodyPred =.. [Body, T, Rest, Res, Acc],
+    BodyPred, !,
+    zanzibar_utils:error_or_wrap(Res, Kw, Out).
+
+block(Search, [token(kw, Kw), token(scope_s, '{') | _], _, _, Out, _) :-
+    \+ memberchk(Kw, Search),
+    !, Out = error(expected_block_one_of, choices(Search), found(Kw)).
+
+block(_, [token(Ty, Tv) | _], _, _, Out, _) :-
+    Out = error(expected_block_start, found(Ty, Tv)),
+    !.
+
+block(_, [], _, _, Out, _) :-
+    Out = error(expected_block_start, found(end_of_input)),
+    !.
+
 scope_end([H|T], Type, T2, Out, Acc) :-
     [token(scope_e, '}') | T2] = [H|T],
     Out =.. [Type, Acc].
@@ -161,56 +184,104 @@ parse_config(In, Out) :-
     zanzibar_tokenizer:tokenize(In, Tokens),
     config(Tokens, Out).
 
-% -------------------------------------------|
-% Extract to tests:
-% -------------------------------------------|
-example(Out) :-
-    parse_config("
-name1=\"value\"
-property2 = 123
-property2 = 123.4
-boolean = false
+:- begin_tests(zanzibar_ns_config_tests).
+:- set_prolog_flag(double_quotes, chars).
 
-relation {
-    name = \"owner\"
-    prop2 = 123
-}
+test(valid_complete, [ true( Out = [
+    relation([
+        rewrite([
+            union([
+                child([
+                    tuple_to_userset([
+                        computed_userset([
+                            kv(relation, "viewer"),
+                            kv(object, var(tuple_userset_object))
+                        ]),
+                        tupleset([
+                            kv(relation, "parent")
+                        ])
+                    ])
+                ]),
+                child([
+                    computed_userset([
+                        kv(name, "editor")
+                    ])
+                ]),
+                child(this)
+            ])
+        ]),
+        kv(name, "viewer")
+    ]),
+    relation([
+        rewrite([
+            union([
+                child([
+                    computed_userset([
+                        kv(name, "owner")
+                    ])
+                ]),
+                child(this)
+            ])
+        ]),
+        kv(name, "editor")
+    ]),
+    relation([
+        kv(prop2, 123),
+        kv(name, "owner")
+    ]),
+    kv(boolean, false),
+    kv(property2, 123.4),
+    kv(property2, 123),
+    kv(name1, "value") ])]) :- parse_config("
+        name1=\"value\"
+        property2 = 123
+        property2 = 123.4
+        boolean = false
 
-relation {
-    name = \"editor\"
-    rewrite {
-        union {
-            child { _ }
-            child {
-                computed_userset {
-                    name = \"owner\"
+        relation {
+            name = \"owner\"
+            prop2 = 123
+        }
+
+        relation {
+            name = \"editor\"
+            rewrite {
+                union {
+                    child { _ }
+                    child {
+                        computed_userset {
+                            name = \"owner\"
+                        }
+                    }
                 }
             }
         }
-    }
-}
 
-relation {
-    name = \"viewer\"
-    rewrite {
-        union {
-            child { _ }
-            child {
-                computed_userset {
-                    name = \"editor\"
+        relation {
+            name = \"viewer\"
+            rewrite {
+                union {
+                    child { _ }
+                    child {
+                        computed_userset {
+                            name = \"editor\"
+                        }
+                    }
+                    child {
+                        tuple_to_userset {
+                            tupleset {
+                                relation = \"parent\"
+                            }
+                            computed_userset {
+                                object = $tuple_userset_object
+                                relation = \"viewer\"
+                            }
+                        }
+                    }
                 }
             }
-            child { tuple_to_userset {
-                tupleset {
-                    relation = \"parent\"
-                }
-                computed_userset {
-                    object = $tuple_userset_object
-                    relation = \"viewer\"
-                }
-            } }
         }
-    }
-}
+        ", Out).
 
-", Out).
+
+:- end_tests(zanzibar_ns_config_tests).
