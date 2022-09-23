@@ -18,6 +18,12 @@ jobs:
       image: swipl:8.5.17
       options: -v ${{ github.workspace }}:/source -w /source
     steps:
+      - name: Print working directory
+        run: |
+          echo $(pwd)
+      - name: List files
+        run: |
+          ls -la .
       - name: Run tests
         run: |
           swipl -g run_tests -t halt zanzibar_tokenizer_test.pl
