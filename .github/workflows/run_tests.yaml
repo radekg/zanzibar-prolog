@@ -19,9 +19,11 @@ jobs:
         run: |
           echo $GITHUB_WORKSPACE
           ls -la $GITHUB_WORKSPACE
+          echo $(pwd)
+          ls -la $(pwd)
       - name: Run tests
         run: |
-          docker run -v $GITHUB_WORKSPACE:/source -w /source swipl:8.5.17 /bin/bash -c 'pwd && ls -la $(pwd) && exit'
+          docker run -v $(pwd):/source -w /source swipl:8.5.17 /bin/bash -c 'pwd && ls -la $(pwd) && exit'
       - name: Run tests
         run: |
           docker run -v $GITHUB_WORKSPACE:/source -w /source swipl:8.5.17 swipl -g run_tests -t halt zanzibar_tokenizer_test.pl
