@@ -15,6 +15,13 @@ jobs:
     needs: [ sources ]
     runs-on: ubuntu-latest
     steps:
+      - name: Debug
+        run: |
+          echo $GITHUB_WORKSPACE
+          ls -la $GITHUB_WORKSPACE
+      - name: Run tests
+        run: |
+          docker run -v $GITHUB_WORKSPACE:/source -w /source --entrypoint /bin/bash swipl:8.5.17 pwd && ls -la $(pwd) && exit
       - name: Run tests
         run: |
           docker run -v $GITHUB_WORKSPACE:/source -w /source swipl:8.5.17 swipl -g run_tests -t halt zanzibar_tokenizer_test.pl
