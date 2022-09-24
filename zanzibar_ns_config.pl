@@ -187,6 +187,110 @@ parse_config(In, Out) :-
 :- begin_tests(zanzibar_ns_config_tests).
 :- set_prolog_flag(double_quotes, chars).
 
+test(valid_no_rewrite, [ true( Out = [
+    relation([
+        kv(name, "owner")
+    ]),
+    kv(name, "namespace") ])]) :- parse_config("
+        name = \"namespace\"
+        relation {
+            name = \"owner\"
+        }
+        ", Out).
+
+test(valid_union, [ true( Out = [
+    relation([
+        rewrite([
+            union([
+                child([
+                    computed_userset([
+                        kv(name, "owner")
+                    ])
+                ]),
+                child(this)
+            ])
+        ]),
+        kv(name, "editor")
+    ]),
+    kv(name, "namespace")])]) :- parse_config("
+        name = \"namespace\"
+        relation {
+            name = \"editor\"
+            rewrite {
+                union {
+                    child { _ }
+                    child {
+                        computed_userset {
+                            name = \"owner\"
+                        }
+                    }
+                }
+            }
+        }
+    ", Out).
+
+test(valid_intersect, [ true( Out = [
+    relation([
+        rewrite([
+            intersect([
+                child([
+                    computed_userset([
+                        kv(name, "owner")
+                    ])
+                ]),
+                child(this)
+            ])
+        ]),
+        kv(name, "editor")
+    ]),
+    kv(name, "namespace")])]) :- parse_config("
+        name = \"namespace\"
+        relation {
+            name = \"editor\"
+            rewrite {
+                intersect {
+                    child { _ }
+                    child {
+                        computed_userset {
+                            name = \"owner\"
+                        }
+                    }
+                }
+            }
+        }
+    ", Out).
+
+test(valid_exclude, [ true( Out = [
+    relation([
+        rewrite([
+            exclude([
+                child([
+                    computed_userset([
+                        kv(name, "owner")
+                    ])
+                ]),
+                child(this)
+            ])
+        ]),
+        kv(name, "editor")
+    ]),
+    kv(name, "namespace")])]) :- parse_config("
+        name = \"namespace\"
+        relation {
+            name = \"editor\"
+            rewrite {
+                exclude {
+                    child { _ }
+                    child {
+                        computed_userset {
+                            name = \"owner\"
+                        }
+                    }
+                }
+            }
+        }
+    ", Out).
+
 test(valid_complete, [ true( Out = [
     relation([
         rewrite([
@@ -283,5 +387,31 @@ test(valid_complete, [ true( Out = [
         }
         ", Out).
 
+test(invalid_unsupported_expression, [ true( Out = [
+    error(unterminated_relation,consumed([
+        error(unterminated_rewrite,consumed([
+            error(expected_block_one_of,
+                    choices([union,intersect,exclude]),
+                    found(unsupported)
+            )]
+        )),
+        kv(name,[e,d,i,t,o,r])
+    ])),
+    kv(name, "namespace")])]) :- parse_config("
+        name = \"namespace\"
+        relation {
+            name = \"editor\"
+            rewrite {
+                unsupported {
+                    child { _ }
+                    child {
+                        computed_userset {
+                            name = \"owner\"
+                        }
+                    }
+                }
+            }
+        }
+    ", Out).
 
 :- end_tests(zanzibar_ns_config_tests).
