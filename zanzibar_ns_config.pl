@@ -41,7 +41,7 @@ kv([token(kw, K), token(assign,'='), token(symbol, '$'), token(kw, V) | T], T, k
 % -------------------------------------------|
 % Child body:
 % -------------------------------------------|
-child_body([], [], error(unterminated_child, consumed(Acc)), Acc).
+child_body([], [], error(unterminated, child, consumed(Acc)), Acc).
 child_body([H|T], Rest, Out, Acc) :-
     scope_end([H|T], Rest, Out, Acc),
     !.
@@ -55,11 +55,13 @@ child_body([token(kw, computed_userset)|T], Rest, Out, Acc) :-
 child_body([token(kw, tuple_to_userset)|T], Rest, Out, Acc) :-
     tuple_to_userset([token(kw, tuple_to_userset)|T], T2, Item, []),
     !, child_body(T2, Rest, Out, [Item|Acc]).
+    
+child_body([token(kw, Kw)|T], _Rest, error(unknown, child, found(Kw), remaining(T)), _Acc).
 
 % -------------------------------------------|
 % Computed userset body:
 % -------------------------------------------|
-computed_userset_body([], [], error(unterminated_computed_userset, consumed(Acc)), Acc).
+computed_userset_body([], [], error(unterminated, computed_userset, consumed(Acc)), Acc).
 computed_userset_body([H|T], Rest, Out, Acc) :-
     scope_end([H|T], Rest, Out, Acc),
     !.
@@ -73,16 +75,16 @@ computed_userset_body([H|T], Rest, Out, Acc) :-
 config_body([H|T], Out, Acc) :-
     kv([H|T], T2, Item),
     !, config_body(T2, Out, [Item|Acc]).
-config_body([H|T], Out, Acc) :-
-    relation([H|T], T2, Item, []),
+config_body([token(kw, relation)|T], Out, Acc) :-
+    relation([token(kw, relation)|T], T2, Item, []),
     !, config_body(T2, Out, [Item|Acc]).
-config_body([H|T], error(unsupported, rest([H|T])), _).
+config_body([token(kw, Kw)|T], error(unknown, configuration, found(Kw), remaining(T), consumed(Acc)), Acc).
 config_body([], Acc, Acc).
 
 % -------------------------------------------|
 % Relation body:
 % -------------------------------------------|
-relation_body([], [], error(unterminated_relation, consumed(Acc)), Acc).
+relation_body([], [], error(unterminated, relation, consumed(Acc)), Acc).
 relation_body([H|T], Rest, Out, Acc) :-
     scope_end([H|T], Rest, Out, Acc),
     !.
@@ -98,7 +100,7 @@ relation_body([H|T], Rest, Out, Acc) :-
 % -------------------------------------------|
 % Rewrite body:
 % -------------------------------------------|
-rewrite_body([], [], error(unterminated_rewrite, consumed(Acc)), Acc).
+rewrite_body([], [], error(unterminated, rewrite, consumed(Acc)), Acc).
 rewrite_body([H|T], Rest, Out, Acc) :-
     scope_end([H|T], Rest, Out, Acc),
     !.
@@ -110,7 +112,7 @@ rewrite_body([H|T], Rest, Out, Acc) :-
 % -------------------------------------------|
 % Expression body:
 % -------------------------------------------|
-expression_body([], [], error(unterminated_expression, consumed(Acc)), Acc).
+expression_body([], [], error(unterminated, expression, consumed(Acc)), Acc).
 % Careful, returns a list only, type is wrapped in relevant expression/4.
 expression_body([H|T], Rest, Out, Acc) :-
     scope_end([H|T], Rest, Out, Acc),
@@ -123,7 +125,7 @@ expression_body([H|T], Rest, Out, Acc) :-
 % -------------------------------------------|
 % Tuple to userset body:
 % -------------------------------------------|
-tuple_to_userset_body([], [], error(unterminated_tuple_to_userset, consumed(Acc)), Acc).
+tuple_to_userset_body([], [], error(unterminated, tuple_to_userset, consumed(Acc)), Acc).
 tuple_to_userset_body([H|T], Rest, Out, Acc) :-
     scope_end([H|T], Rest, Out, Acc),
     !.
@@ -139,10 +141,12 @@ tuple_to_userset_body([token(kw, tupleset)|T], Rest, Out, Acc) :-
     tupleset([token(kw, tupleset)|T], T2, Item, []), 
     !, tuple_to_userset_body(T2, Rest, Out, [Item|Acc]).
 
+tuple_to_userset_body([token(kw, Kw)|T], _Rest, error(unknown, tuple_to_userset, found(Kw), remaining(T)), _Acc).
+
 % -------------------------------------------|
 % Tupleset body:
 % -------------------------------------------|
-tupleset_body([], [], error(unterminated_tupleset, consumed(Acc)), Acc).
+tupleset_body([], [], error(unterminated, tupleset, consumed(Acc)), Acc).
 tupleset_body([H|T], Rest, Out, Acc) :-
     scope_end([H|T], Rest, Out, Acc),
     !.
@@ -387,9 +391,41 @@ test(valid_complete, [ true( Out = [
         }
         ", Out).
 
-test(invalid_unsupported_expression, [ true( Out = [
-    error(unterminated_relation,consumed([
-        error(unterminated_rewrite,consumed([
+test(invalid_unsupported_top_level_block, [ true( Out = 
+    error(unknown, configuration, found(unsupported), remaining([
+        token(scope_s, '{'),
+        token(kw, name),
+        token(assign, '='),
+        token(qs, "editor"),
+        token(scope_e, '}')
+    ]),
+    consumed([
+        kv(name, "namespace")
+    ])) )]) :- parse_config("
+        name = \"namespace\"
+        unsupported {
+            name = \"editor\"
+        }
+        ", Out).
+
+test(invalid_unsupported_relation_block, [ true( Out = [
+    error(unterminated, relation, consumed([
+        error(expected_block_one_of, choices([rewrite]), found(unsupported_block)),
+        kv(name, "editor")
+    ])),
+    kv(name, "namespace")])]) :- parse_config("
+        name = \"namespace\"
+        relation {
+            name = \"editor\"
+            unsupported_block {
+
+            }
+        }
+        ", Out).
+
+test(invalid_unsupported_expression_type, [ true( Out = [
+    error(unterminated, relation,consumed([
+        error(unterminated, rewrite,consumed([
             error(expected_block_one_of,
                     choices([union,intersect,exclude]),
                     found(unsupported)
@@ -412,6 +448,111 @@ test(invalid_unsupported_expression, [ true( Out = [
                 }
             }
         }
-    ", Out).
+        ", Out).
+
+test(invalid_unsupported_child_block, [ true( Out = [
+    error(unterminated, relation, consumed([
+        error(unterminated, rewrite, consumed([
+            error(unterminated, expression, consumed([
+                error(unknown, child, found(unsupported), remaining([
+                    token(scope_s, '{'),
+                    token(kw, name),
+                    token(assign, '='),
+                    token(qs, "owner"),
+                    token(scope_e, '}'),
+                    token(scope_e, '}'),
+                    token(scope_e, '}'),
+                    token(scope_e, '}'),
+                    token(scope_e, '}')
+                ])),
+                child(this)
+            ]))
+        ])),
+        kv(name,[e,d,i,t,o,r])
+    ])),
+    kv(name, "namespace")])]) :- parse_config("
+        name = \"namespace\"
+        relation {
+            name = \"editor\"
+            rewrite {
+                union {
+                    child { _ }
+                    child {
+                        unsupported {
+                            name = \"owner\"
+                        }
+                    }
+                }
+            }
+        }
+        ", Out).
+
+test(invalid_unsupported_expected_child_block, [ true( Out = [
+    error(unterminated, relation, consumed([
+        error(unterminated, rewrite, consumed([
+            error(unterminated, expression, consumed([
+                error(expected_block_one_of, choices([child]), found(unexpected_block))
+            ]))
+        ])),
+        kv(name,[e,d,i,t,o,r])
+    ])),
+    kv(name, "namespace")])]) :- parse_config("
+        name = \"namespace\"
+        relation {
+            name = \"editor\"
+            rewrite {
+                union {
+                    unexpected_block { _ }
+                    child { _ }
+                }
+            }
+        }
+        ", Out).
+
+test(invalid_unsupported_expected_tuple_to_userset_block, [ true( Out = [
+    error(unterminated, relation, consumed([
+        error(unterminated, rewrite, consumed([
+            error(unterminated, expression, consumed([
+                error(unterminated, child, consumed([
+                    error(unknown, tuple_to_userset, found(unexpected_block), remaining([
+                        token(scope_s, '{'),
+                        token(scope_e, '}'),
+                        token(kw, tupleset),
+                        token(scope_s, '{'),
+                        token(kw, relation),
+                        token(assign, '='),
+                        token(qs, "parent"),
+                        token(scope_e, '}'),
+                        token(scope_e, '}'),
+                        token(scope_e, '}'),
+                        token(scope_e, '}'),
+                        token(scope_e, '}'),
+                        token(scope_e, '}')
+                    ]))
+                ]))
+            ]))
+        ])),
+        kv(name, "test")
+    ])),
+    kv(name, "namespace")])]) :- parse_config("
+        name=\"namespace\"
+        relation {
+            name = \"test\"
+            rewrite {
+                union {
+                    child {
+                        tuple_to_userset {
+                            unexpected_block {
+
+                            }
+                            tupleset {
+                                relation = \"parent\"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        ", Out).
 
 :- end_tests(zanzibar_ns_config_tests).
