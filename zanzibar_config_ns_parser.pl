@@ -52,33 +52,3 @@ scope_end([H|T], T2, Acc, Acc) :-
 parse_config(In, ast(Out)) :-
     zanzibar_tokenizer:tokenize(In, Tokens),
     config(Tokens, Out).
-
-example(Out) :-
-    parse_config("
-    name = \"name1\"
-
-    property1 = 1.0
-    property2 = 42
-    property3 = false
-    property4 = $variable
-
-    relation {
-        nested_block1 {
-            name = \"nested name\"
-            child {
-                name = \"child\"
-            }
-        }
-        nested_block2 {
-        }
-        nested_block3 {
-            nested_block3_1 {
-            }
-            nested_block3_2 {
-                child {
-                    name = \"child 3.2\"
-                }
-            }
-        }
-    }
-    ", Out).
