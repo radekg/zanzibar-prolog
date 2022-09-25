@@ -23,6 +23,8 @@ block_body([H|T], Rest, Out, Acc) :-
     block([H|T], T2, Item),
     !, block_body(T2, Rest, Out, [Item|Acc]).
 
+block_body([H|T], _, error(invalid, expected([block,kv]), remaining([H|T]), captured(Acc)), Acc).
+
 block([], [], Acc, Acc).
 block([token(kw, Kw), token(scope_s, '{') | T], Rest, block(Kw, Out)) :-
     block_body(T, Rest, Out, []), !.
