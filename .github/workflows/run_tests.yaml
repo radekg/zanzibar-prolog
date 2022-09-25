@@ -17,6 +17,9 @@ jobs:
           ls -la $GITHUB_WORKSPACE
           echo $(pwd)
           ls -la $(pwd)
+      - name: Run config namespace parser tests
+        run: |
+          docker run -v $GITHUB_WORKSPACE:/source -w /source swipl:8.5.17 swipl -g run_tests -t halt zanzibar_config_ns_parser_test.pl
       - name: Run tokenizer tests
         run: |
           docker run -v $GITHUB_WORKSPACE:/source -w /source swipl:8.5.17 swipl -g run_tests -t halt zanzibar_tokenizer_test.pl
