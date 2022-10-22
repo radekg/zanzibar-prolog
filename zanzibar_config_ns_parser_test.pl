@@ -29,7 +29,7 @@ test(valid_nested_blocks, [ true( Out =
         kv(property1, 1.0),
         kv(name, "name1")
     ])
-    )]) :- parse_config("
+    )]) :- parse("
     name = \"name1\"
 
     property1 = 1.0
@@ -77,7 +77,7 @@ test(invalid_direct, [ true( Out =
                 kv(name, "name1")
             ])
     ))
-    )]) :- parse_config("
+    )]) :- parse("
     name = \"name1\"
 
     property1 = 1.0
@@ -112,7 +112,7 @@ test(invalid_nested, [ true( Out =
         kv(property1, 1.0),
         kv(name,"name1")
     ])
-    )]) :- parse_config("
+    )]) :- parse("
     name = \"name1\"
 
     property1 = 1.0

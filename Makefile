@@ -1,5 +1,9 @@
 .PHONY: test
-test: test-config-ns-parser test-tokenizer test-tuple test-utils
+test: test-config-ns-lexer test-config-ns-parser test-tokenizer test-tuple test-utils
+
+.PHONY: test-config-ns-lexer
+test-config-ns-lexer:
+	swipl -g run_tests -t halt zanzibar_config_ns_lexer_test.pl
 
 .PHONY: test-config-ns-parser
 test-config-ns-parser:

@@ -1,5 +1,5 @@
 :- module(zanzibar_config_ns_parser,
-    [parse_config/2]).
+    [parse/2]).
 
 % Enable double-quoted strings for ease of use.
 :- set_prolog_flag(double_quotes, chars).
@@ -49,6 +49,6 @@ scope_end([H|T], T2, Acc, Acc) :-
 % -------------------------------------------|
 % API:
 % -------------------------------------------|
-parse_config(In, ast(Out)) :-
+parse(In, ast(Out)) :-
     zanzibar_tokenizer:tokenize(In, Tokens),
     config(Tokens, Out).
