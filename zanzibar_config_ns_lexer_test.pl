@@ -4,73 +4,32 @@
 :- set_prolog_flag(double_quotes, chars).
 :- use_module(zanzibar_config_ns_lexer).
 
-test(valid_complete, true( Out = ns(
-    kvs([
-        kv(name, "name1"),
-        kv(property1, 1.0),
-        kv(property2, 42),
-        kv(property3, false),
-        kv(property4, var(variable))
-    ]),
-    relations([
-        relation(kvs([]), rewrites([
-            rewrite(kvs([]), expressions([
-                union(
-                    expression(
-                        children([
-                            child(
-                                usersets([
-                                    userset(this([]))
-                                ]),
-                                errors([])
-                            ),
-                            child(
-                                usersets([
-                                    computed_userset(
-                                        kvs([
-                                            kv(relation, "editor")
-                                        ]),
-                                        errors([])
-                                    )
-                                ]),
-                                errors([])
-                            ),
-                            child(
-                                usersets([
-                                    tuple_to_userset(
-                                        tuplesets([
-                                            tupleset(
-                                                kvs([
-                                                    kv(relation, "parent")
-                                                ]),
-                                                errors([])
-                                            )
-                                        ]),
-                                        computed_usersets([
-                                            computed_userset(
-                                                kvs([
-                                                    kv(object, var('TUPLESET_OBJECT')),
-                                                    kv(relation, "viewer")
-                                                ]),
-                                                errors([])
-                                            )
-                                        ]),
-                                        errors([])
-                                    )
-                                ]),
-                                errors([])
-                            )
-                        ]),
-                        errors([])
-                    )
-                )
+test(valid_nested_blocks, [ true( Out =
+    ast([
+        block(relation, [
+            block(nested_block3, [
+                block(nested_block3_2, [
+                    block(child, [
+                        kv(name, "child 3.2")
+                    ])
+                ]),
+                block(nested_block3_1, [])
             ]),
-            errors([]))
+            block(nested_block2, []),
+            block(nested_block1, [
+                block(child, [
+                    kv(name, "child")
+                ]),
+                kv(name, "nested name")
+            ])
         ]),
-        errors([]))
-    ]),
-    errors([])
-    ) )) :- lex("
+        kv(property4, var(variable)),
+        kv(property3, false),
+        kv(property2, 42),
+        kv(property1, 1.0),
+        kv(name, "name1")
+    ])
+    )]) :- lex("
     name = \"name1\"
 
     property1 = 1.0
@@ -79,29 +38,91 @@ test(valid_complete, true( Out = ns(
     property4 = $variable
 
     relation {
-        rewrite {
-            union {
+        nested_block1 {
+            name = \"nested name\"
+            child {
+                name = \"child\"
+            }
+        }
+        nested_block2 {
+        }
+        nested_block3 {
+            nested_block3_1 {
+            }
+            nested_block3_2 {
                 child {
-                    this {}
-                }
-                child {
-                    computed_userset {
-                        relation = \"editor\"
-                    }
-                }
-                child {
-                    tuple_to_userset {
-                        tupleset {
-                            relation = \"parent\"
-                        }
-                        computed_userset {
-                            object = $TUPLESET_OBJECT
-                            relation = \"viewer\"
-                        }
-                    }
+                    name = \"child 3.2\"
                 }
             }
         }
+    }
+    ", Out).
+
+test(invalid_direct, [ true( Out =
+    ast(error(invalid, expected([block,kv]),
+            remaining([
+                token(kw, unexpected),
+                token(kw, relation),
+                token(scope_s, '{'),
+                token(kw, name),
+                token(assign, '='),
+                token(qs, "relation name"),
+                token(scope_e, '}')
+            ]),
+            captured([
+                kv(property4, var(variable)),
+                kv(property3, false),
+                kv(property2, 42),
+                kv(property1, 1.0),
+                kv(name, "name1")
+            ])
+    ))
+    )]) :- lex("
+    name = \"name1\"
+
+    property1 = 1.0
+    property2 = 42
+    property3 = false
+    property4 = $variable
+
+    unexpected
+
+    relation {
+        name = \"relation name\"
+    }
+    ", Out).
+
+test(invalid_nested, [ true( Out =
+    ast([
+        block(relation,
+                error(invalid,
+                        expected([block,kv]),
+                        remaining([
+                            token(kw, unexpected),
+                            token(scope_e, '}')
+                        ]),
+                        captured([
+                            kv(name,"relation name")
+                        ])
+                    )
+        ),
+        kv(property4, var(variable)),
+        kv(property3, false),
+        kv(property2, 42),
+        kv(property1, 1.0),
+        kv(name,"name1")
+    ])
+    )]) :- lex("
+    name = \"name1\"
+
+    property1 = 1.0
+    property2 = 42
+    property3 = false
+    property4 = $variable
+
+    relation {
+        name = \"relation name\"
+        unexpected
     }
     ", Out).
 
