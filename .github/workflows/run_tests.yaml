@@ -1,0 +1,31 @@
+name: RunTests
+
+on:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Debug
+        run: |
+          echo $GITHUB_WORKSPACE
+          ls -la $GITHUB_WORKSPACE
+          echo $(pwd)
+          ls -la $(pwd)
+      - name: Run config namespace parser tests
+        run: |
+          docker run -v $GITHUB_WORKSPACE:/source -w /source swipl:8.5.17 swipl -g run_tests -t halt zanzibar_config_ns_parser_test.pl
+      - name: Run tokenizer tests
+        run: |
+          docker run -v $GITHUB_WORKSPACE:/source -w /source swipl:8.5.17 swipl -g run_tests -t halt zanzibar_tokenizer_test.pl
+      - name: Run tuple tests
+        run: |
+          docker run -v $GITHUB_WORKSPACE:/source -w /source swipl:8.5.17 swipl -g run_tests -t halt zanzibar_tuple_test.pl
+      - name: Run utils tests
+        run: |
+          docker run -v $GITHUB_WORKSPACE:/source -w /source swipl:8.5.17 swipl -g run_tests -t halt zanzibar_utils_test.pl

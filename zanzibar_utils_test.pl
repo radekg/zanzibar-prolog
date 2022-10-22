@@ -1,6 +1,12 @@
 :- begin_tests(zanzibar_utils_test).
 :- use_module(zanzibar_utils).
 
+test(error_wrap_error, [ true( Out = error(input, data) ) ]) :-
+    zanzibar_utils:error_or_wrap(error(input, data), wrap, Out).
+    
+test(error_wrap_non_error, [ true( Out = wrap([input, data]) ) ]) :-
+    zanzibar_utils:error_or_wrap([input, data], wrap, Out).
+
 test(direct_error) :-
     zanzibar_utils:is_error(error(nil)).
 

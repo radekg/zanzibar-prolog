@@ -51,6 +51,7 @@ next_quoted_char(H)         --> [H], !.
 % -------------------------------------------|
 
 keyword([H|T]) --> [H], { char_type(H, alnum) }, !, keyword(T).
+keyword([H|T]) --> [H], { char_code(H, 95) }, !, keyword(T).
 keyword([])    --> [].
 
 tokens([H|T]) --> spaces, token(H), !,
@@ -151,7 +152,7 @@ token(error(unterminated, '\'', R)) --> ['\''], remainder(R), !.
 % Read keywords:
 % -------------------------------------------|
 
-token(token(kw, Kw)) --> {Kw = [_|_]}, keyword(Kw), !.
+token(token(kw, Atom)) --> keyword(Kw), {atom_string(Atom, Kw)}, {Kw = [_|_]}, !.
 
 % -------------------------------------------|
 % Catch-all unknown input:
